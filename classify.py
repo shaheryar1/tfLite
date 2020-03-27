@@ -13,9 +13,9 @@ input_details = interpreter.get_input_details()
 output_details = interpreter.get_output_details()
 
 print("== Input details ==")
-print("shape:", input_details[0]['shape'])
+print("shape:", input_details)
 print("\n== Output details ==")
-print("shape:", output_details[0]['shape'])
+print("shape:", output_details)
 #
 # interpreter.resize_tensor_input(input_details[0]['index'], (2, 224, 224, 3))
 # interpreter.resize_tensor_input(output_details[0]['index'], (2, 1001))
@@ -52,6 +52,8 @@ print(time.time()-t)
 # The function `get_tensor()` returns a copy of the tensor data.
 # Use `tensor()` in order to get a pointer to the tensor.
 output_data = interpreter.get_tensor(output_details[0]['index'])
+
+# Dequantizing the outputs
 if output_details[0]['dtype'] == np.uint8:
     scale, zero_point = output_details[0]['quantization']
     output = scale * (output_data - zero_point)
