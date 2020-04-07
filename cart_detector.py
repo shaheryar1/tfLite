@@ -22,18 +22,23 @@ resW, resH = 640,480
 imW, imH = int(resW), int(resH)
 use_TPU = False
 
-from tensorflow.lite.python.interpreter import Interpreter
 
-if use_TPU:
-    from tensorflow.lite.python.interpreter import load_delegate
 
-# If using Edge TPU, assign filename for Edge TPU model
-if use_TPU:
-    # If user has specified the name of the .tflite file, use that name, otherwise use default 'edgetpu.tflite'
-    if (GRAPH_NAME == 'detect.tflite'):
-        GRAPH_NAME = 'edgetpu.tflite'
+pkg = importlib.util.find_spec('tensorflow')
+if pkg is None:
+    from tflite_runtime.interpreter import Interpreter
+    if use_TPU:
+        from tflite_runtime.interpreter import load_delegate
+else:
 
-    # Get path to current working directory
+    from tensorflow.lite.python.interpreter import Interpreter
+    if use_TPU:
+        from tensorflow.lite.python.interpreter import load_delegate
+
+
+
+
+
 CWD_PATH = os.getcwd()
 
 # Path to .tflite file, which contains the model that is used for object detection
