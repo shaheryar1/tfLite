@@ -3,6 +3,8 @@ import numpy as np
 from PIL import Image
 
 
+a={1:"a"}
+print(a.get(0))
 
 # define a video capture object
 vid = cv2.VideoCapture(0)

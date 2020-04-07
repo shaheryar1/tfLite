@@ -14,15 +14,6 @@ import glob
 from utils.centroidtracker import CentroidTracker
 from DAL.DetectionDAL import DetectionDAL
 
-def getAvailableCamera():
-    for camera in glob.glob("/dev/video?"):
-        print(camera)
-        cap = cv2.VideoCapture(camera)
-        if (cap.isOpened()):
-            return cap
-        else:
-            cap.release()
-
 MODEL_NAME = "ssd_mobilenet"
 GRAPH_NAME = "detect.tflite"
 LABELMAP_NAME = "labelmap.txt"
@@ -93,8 +84,7 @@ if __name__ == '__main__':
     line_threshold=200
     ct = CentroidTracker(max_disappeared)
 
-    previous_point=0
-
+    previous_points={}
     # Initialize video stream
     vid = cv2.VideoCapture(0)
     ret = True
@@ -139,7 +129,7 @@ if __name__ == '__main__':
         scores_temp=[]
         nms_idx=[]
         for i in range(len(scores)):
-            if ((scores[i] > min_conf_threshold) and (scores[i] <= 1.0)):
+            if ((scores[i] > min_conf_threshold) and (scores[i] <= 1.0)  and classes[i] in target_objects ):
 
                 boxes[i][0] = int(max(1, (boxes[i][0] * imH)))
                 boxes[i][1] = int(max(1, (boxes[i][1] * imW)))
@@ -183,7 +173,7 @@ if __name__ == '__main__':
                         2)  # Draw label text
 
         # Tracking and assigning unique IDs part -- start
-        print("classes",classes[nms_idx])
+
         objects,c = ct.update(boxes[nms_idx],classes[nms_idx])
 
 
@@ -206,12 +196,17 @@ if __name__ == '__main__':
             x=centroid[0]
             y=centroid[1]
 
-            # if (y > thresh and previous_point < y and previous_point < thresh):
-            #     print("Putting down a cup with id ",objectID)
-            # elif (y < thresh and previous_point > y and previous_point > thresh):
-            #     print("Picking out a cup with id ", objectID)
 
-            previous_point=y;
+            if(previous_points.get(objectID) is None):
+                previous_points[objectID]=0
+
+
+            if (y > thresh and previous_points[objectID] < y and previous_points[objectID] < thresh):
+                print("Putting down  ",labels[int(c[objectID])])
+            elif (y < thresh and previous_points[objectID] > y and previous_points[objectID] > thresh):
+                print("Picking out ", labels[int(c[objectID])])
+
+            previous_points[objectID]=y
 
             text = "Object {}".format(objectID)
             cv2.putText(frame, text, (centroid[0] - 10, centroid[1] - 10),

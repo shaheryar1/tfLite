@@ -64,7 +64,7 @@ class CentroidTracker():
 			cY = int((startY + endY) / 2.0)
 			inputCentroids[i] = (cX, cY)
 
-		print("Old ",len(inputCentroids),len(rects),len(classes))
+		# print("Old ",len(inputCentroids),len(rects),len(classes))
 		# if we are currently not tracking any objects take the input
 		# centroids and register each of them
 		if len(self.objects) == 0:
@@ -119,7 +119,7 @@ class CentroidTracker():
 				# otherwise, grab the object ID for the current row,
 				# set its new centroid, and reset the disappeared
 				# counter
-				print(len(inputCentroids),len(classes))
+
 				objectID = objectIDs[row]
 				self.objects[objectID] = inputCentroids[col]
 				self.labels[objectID]=classes[col]
