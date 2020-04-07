@@ -48,7 +48,8 @@ if __name__ == '__main__':
     count = -1;
     while ret:
 
-
+        previous_wrist_point=0;
+        line_threshold = 150
         count = count + 1;
         # Start timer (for calculating frame rate)
         t1 = cv2.getTickCount()
@@ -61,7 +62,7 @@ if __name__ == '__main__':
         frame_resized = cv2.resize(frame_rgb, (257, 257))
 
 
-        if(count%3==0):
+        if(count%2==0):
             input_data = np.expand_dims(frame_resized, axis=0)
 
             input_shape = input_details[0]['shape']
@@ -85,17 +86,28 @@ if __name__ == '__main__':
             keypoints =get_keypoints(heat_map,offsets,32)
 
         for point in keypoints:
-
+            thresh=HEIGHT-line_threshold
             if(point.confidence>=0.60 and (point.body_part==PARTS[9] or point.body_part==PARTS[10])):
 
                 frame_resized=cv2.circle(frame_resized,(int(point.y),int(point.x)),2,(0,0,255),cv2.FILLED)
-                print(point.confidence)
+                print(point.x,point.y)
+                if(point.x>thresh and previous_wrist_point<point.x and previous_wrist_point<thresh):
+                    print("Putting down an object")
+                elif(point.x<thresh and previous_wrist_point>point.x and previous_wrist_point>thresh):
+                    print("Putting up an object")
+
+
+
+                previous_wrist_point=point.y
+
+
+
 
         org_size_frame= cv2.cvtColor(frame_resized, cv2.COLOR_RGB2BGR)
         org_size_frame= cv2.resize(org_size_frame,(WIDTH,HEIGHT))
 
 
-        line_threshold = 150
+
 
         cv2.line(org_size_frame,(0,HEIGHT-line_threshold),(WIDTH,HEIGHT-line_threshold),(0,255,0),2)
 

@@ -26,20 +26,11 @@ def getAvailableCamera():
 MODEL_NAME = "ssd_mobilenet"
 GRAPH_NAME = "detect.tflite"
 LABELMAP_NAME = "labelmap.txt"
-min_conf_threshold = float(0.6)
+min_conf_threshold = float(0.50)
 resW, resH = 640,480
 imW, imH = int(resW), int(resH)
 use_TPU = False
-# Import TensorFlow libraries
-# If tensorflow is not installed, import interpreter from tflite_runtime, else import from regular tensorflow
-# If using Coral Edge TPU, import the load_delegate library
-# pkg = importlib.util.find_spec('tensorflow')
-# if pkg is None:
-#     from tflite_runtime.interpreter import Interpreter
-#
-#     if use_TPU:
-#         from tflite_runtime.interpreter import load_delegate
-# else:
+
 from tensorflow.lite.python.interpreter import Interpreter
 
 if use_TPU:
@@ -64,9 +55,6 @@ PATH_TO_LABELS = os.path.join(CWD_PATH, MODEL_NAME, LABELMAP_NAME)
 with open(PATH_TO_LABELS, 'r') as f:
     labels = [line.strip() for line in f.readlines()]
 
-# Have to do a weird fix for label map if using the COCO "starter model" from
-# https://www.tensorflow.org/lite/models/object_detection/overview
-# First label is '???', which has to be removed.
 if labels[0] == '???':
     del (labels[0])
 
@@ -100,9 +88,12 @@ if __name__ == '__main__':
     frame_rate_calc = 1
     freq = cv2.getTickFrequency()
     dal=DetectionDAL()
-    target_object_id=43
-    max_disappeared=12;
+    target_objects=[46,43] #only targetting bottle object
+    max_disappeared=6; # frames count for max disappeared
+    line_threshold=200
     ct = CentroidTracker(max_disappeared)
+
+    previous_point=0
 
     # Initialize video stream
     vid = cv2.VideoCapture(0)
@@ -121,6 +112,8 @@ if __name__ == '__main__':
         # Acquire frame and resize to expected shape [1xHxWx3]
 
         frame = frame1.copy()
+        HEIGHT,WIDTH,CHANNELS=frame.shape
+
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         frame_resized = cv2.resize(frame_rgb, (width, height))
         input_data = np.expand_dims(frame_resized, axis=0)
@@ -146,7 +139,7 @@ if __name__ == '__main__':
         scores_temp=[]
         nms_idx=[]
         for i in range(len(scores)):
-            if ((scores[i] > min_conf_threshold) and (scores[i] <= 1.0) and classes[i]==target_object_id):
+            if ((scores[i] > min_conf_threshold) and (scores[i] <= 1.0)):
 
                 boxes[i][0] = int(max(1, (boxes[i][0] * imH)))
                 boxes[i][1] = int(max(1, (boxes[i][1] * imW)))
@@ -159,11 +152,12 @@ if __name__ == '__main__':
         boxes_temp = np.array(boxes_temp)
         boxes=boxes_temp
         scores=scores_temp
-        classes=classes_temp
+        classes=np.array(classes_temp)
         # print("Before NMS", len(boxes_list))
         # nms_idx represents indices of selected bounding boxes
+
         nms_idx = non_max_suppression_slow(boxes_temp, 0.3)
-        # print("After NMS", len(nms_idx))
+        # print("After NMS", len(nms_idx),len(classes[nms_idx]))
 
 
         # Loop over all detections and draw detection box if confidence is above minimum threshold
@@ -189,18 +183,35 @@ if __name__ == '__main__':
                         2)  # Draw label text
 
         # Tracking and assigning unique IDs part -- start
-        objects = ct.update(boxes)
+        print("classes",classes[nms_idx])
+        objects,c = ct.update(boxes[nms_idx],classes[nms_idx])
+
+
+
+
 
 
         for (objectID, centroid) in objects.items():
+
+            thresh = HEIGHT-line_threshold
+            #
+            # if(ct.disappeared[objectID]==max_disappeared-1):
+            #     dto=DetectionDTO();
+            #     dto.object_id=target_object_id
+            #     dto.confidence=70
+            #     dal.insertDetection(dto)
             # draw both the ID of the object and the centroid of the
             # object on the output frame
 
-            if(ct.disappeared[objectID]==max_disappeared-1):
-                dto=DetectionDTO();
-                dto.object_id=target_object_id
-                dto.confidence=70
-                dal.insertDetection(dto)
+            x=centroid[0]
+            y=centroid[1]
+
+            # if (y > thresh and previous_point < y and previous_point < thresh):
+            #     print("Putting down a cup with id ",objectID)
+            # elif (y < thresh and previous_point > y and previous_point > thresh):
+            #     print("Picking out a cup with id ", objectID)
+
+            previous_point=y;
 
             text = "Object {}".format(objectID)
             cv2.putText(frame, text, (centroid[0] - 10, centroid[1] - 10),
@@ -210,8 +221,11 @@ if __name__ == '__main__':
         # Tracking and assigning unique IDs part -- end
 
         # Draw framerate in corner of frame
-        # cv2.putText(frame, 'FPS: {0:.2f}'.format(frame_rate_calc), (30, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2,
-        #             cv2.LINE_AA)
+        cv2.putText(frame, 'FPS: {0:.2f}'.format(frame_rate_calc), (30, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2,
+                    cv2.LINE_AA)
+
+        cv2.line(frame, (0, HEIGHT - line_threshold), (WIDTH, HEIGHT - line_threshold), (0, 255, 0), 2)
+
         # All the results have been drawn on the frame, so it's time to display it.
         cv2.imshow('Object detector', frame)
         # Calculate framerate
