@@ -4,6 +4,7 @@ import os
 from utils.utils import non_max_suppression_slow,get_iou
 import argparse
 import cv2
+from utils.camera_utils import detect_blockage
 import numpy as np
 import sys
 import time
@@ -14,26 +15,24 @@ import glob
 from utils.centroidtracker import CentroidTracker
 from DAL.DetectionDAL import DetectionDAL
 
+# pkg = importlib.util.find_spec('tensorflow')
+# if pkg is None:
+from tflite_runtime.interpreter import Interpreter
+# else:
+#
+#     from tensorflow.lite.python.interpreter import Interpreter
+#     if use_TPU:
+#         from tensorflow.lite.python.interpreter import load_delegate
+
+
 MODEL_NAME = "ssd_mobilenet"
 GRAPH_NAME = "detect.tflite"
 LABELMAP_NAME = "labelmap.txt"
-min_conf_threshold = float(0.50)
+min_conf_threshold = float(0.55)
 resW, resH = 640,480
 imW, imH = int(resW), int(resH)
 use_TPU = False
 
-
-
-pkg = importlib.util.find_spec('tensorflow')
-if pkg is None:
-    from tflite_runtime.interpreter import Interpreter
-    if use_TPU:
-        from tflite_runtime.interpreter import load_delegate
-else:
-
-    from tensorflow.lite.python.interpreter import Interpreter
-    if use_TPU:
-        from tensorflow.lite.python.interpreter import load_delegate
 
 
 
@@ -57,13 +56,7 @@ if labels[0] == '???':
 
 
 # Load the Tensorflow Lite model.
-# If using Edge TPU, use special load_delegate argument
-if use_TPU:
-    interpreter = Interpreter(model_path=PATH_TO_CKPT,
-                              experimental_delegates=[load_delegate('libedgetpu.so.1.0')])
-    print(PATH_TO_CKPT)
-else:
-    interpreter = Interpreter(model_path=PATH_TO_CKPT)
+interpreter = Interpreter(model_path=PATH_TO_CKPT)
 
 interpreter.allocate_tensors()
 
@@ -84,18 +77,26 @@ if __name__ == '__main__':
     frame_rate_calc = 1
     freq = cv2.getTickFrequency()
     dal=DetectionDAL()
-    target_objects=[46,43] #only targetting bottle object
+    target_objects=np.arange(0,90) #only targetting bottle object
     max_disappeared=6; # frames count for max disappeared
     line_threshold=200
     ct = CentroidTracker(max_disappeared)
 
     previous_points={}
     # Initialize video stream
-    vid = cv2.VideoCapture(0)
+    vid = cv2.VideoCapture('cam.mp4')
     ret = True
     count=-1;
+
+    countdown=15
+    cart_switched=False
+    print("Cart switched on !")
+
     # for frame1 in camera.capture_continuous(rawCapture, format="bgr",use_video_port=True):
     while ret:
+
+        countdown=countdown-1;
+
 
         count=count+1;
         # Start timer (for calculating frame rate)
@@ -104,10 +105,24 @@ if __name__ == '__main__':
         # Grab frame from video stream
         ret, frame1 = vid.read()
 
-        # Acquire frame and resize to expected shape [1xHxWx3]
+
+
 
         frame = frame1.copy()
-        HEIGHT,WIDTH,CHANNELS=frame.shape
+        HEIGHT, WIDTH, CHANNELS = frame.shape
+        # check camera blockage
+
+        blockage=detect_blockage(frame)
+        if(blockage==1):
+            cv2.putText(frame, "Camera is blocked", (30, HEIGHT-50), cv2.FONT_HERSHEY_SIMPLEX, 1,
+                        (255, 255, 0), 2,
+                        cv2.LINE_AA)
+        elif(blockage==2):
+            cv2.putText(frame, "Camera partially blocked", (30, HEIGHT-50), cv2.FONT_HERSHEY_SIMPLEX, 1,
+                        (255, 255, 0), 2,
+                        cv2.LINE_AA)
+
+
 
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         frame_resized = cv2.resize(frame_rgb, (width, height))
@@ -126,9 +141,6 @@ if __name__ == '__main__':
             boxes = interpreter.get_tensor(output_details[0]['index'])[0]  # Bounding box coordinates of detected objects
             classes = interpreter.get_tensor(output_details[1]['index'])[0]  # Class index of detected objects
             scores = interpreter.get_tensor(output_details[2]['index'])[0]  # Confidence of detected objects
-
-        # num = interpreter.get_tensor(output_details[3]['index'])[0]  # Total number of detected objects (inaccurate and not needed)
-        #    Applying non-maxima supression
         boxes_temp = [];
         classes_temp=[]
         scores_temp=[]
@@ -148,12 +160,9 @@ if __name__ == '__main__':
         boxes=boxes_temp
         scores=scores_temp
         classes=np.array(classes_temp)
-        # print("Before NMS", len(boxes_list))
-        # nms_idx represents indices of selected bounding boxes
+              # nms_idx represents indices of selected bounding boxes
 
         nms_idx = non_max_suppression_slow(boxes_temp, 0.3)
-        # print("After NMS", len(nms_idx),len(classes[nms_idx]))
-
 
         # Loop over all detections and draw detection box if confidence is above minimum threshold
         for idx in (nms_idx):
@@ -181,9 +190,12 @@ if __name__ == '__main__':
 
         objects,c = ct.update(boxes[nms_idx],classes[nms_idx])
 
+        if (countdown == 0 and cart_switched == False):
+            cart_switched = True
+            for (objectID, centroid) in objects.items():
+                print("Inserted ",labels[int(c[objectID])]," in database")
 
-
-
+            print("Now cart will detect dropping items")
 
 
         for (objectID, centroid) in objects.items():
@@ -197,21 +209,24 @@ if __name__ == '__main__':
             #     dal.insertDetection(dto)
             # draw both the ID of the object and the centroid of the
             # object on the output frame
-
             x=centroid[0]
             y=centroid[1]
 
 
-            if(previous_points.get(objectID) is None):
-                previous_points[objectID]=0
+            # Dropping and picking items from cart is started
+            if(cart_switched==True):
+                if(previous_points.get(objectID) is None):
+                    previous_points[objectID]=0
+                else:
+                    if ( y > thresh and previous_points[objectID] < y and previous_points[objectID] < thresh):
+                        print("Putting down  ",labels[int(c[objectID])])
+                    elif (y < thresh and previous_points[objectID] > y and previous_points[objectID] > thresh):
+                        print("Picking out ", labels[int(c[objectID])])
+
+                previous_points[objectID]=y
 
 
-            if (y > thresh and previous_points[objectID] < y and previous_points[objectID] < thresh):
-                print("Putting down  ",labels[int(c[objectID])])
-            elif (y < thresh and previous_points[objectID] > y and previous_points[objectID] > thresh):
-                print("Picking out ", labels[int(c[objectID])])
 
-            previous_points[objectID]=y
 
             text = "Object {}".format(objectID)
             cv2.putText(frame, text, (centroid[0] - 10, centroid[1] - 10),
@@ -221,10 +236,18 @@ if __name__ == '__main__':
         # Tracking and assigning unique IDs part -- end
 
         # Draw framerate in corner of frame
-        cv2.putText(frame, 'FPS: {0:.2f}'.format(frame_rate_calc), (30, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2,
-                    cv2.LINE_AA)
 
-        cv2.line(frame, (0, HEIGHT - line_threshold), (WIDTH, HEIGHT - line_threshold), (0, 255, 0), 2)
+        if(cart_switched):
+            cv2.putText(frame, 'FPS: {0:.2f}'.format(frame_rate_calc), (30, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2,
+                        cv2.LINE_AA)
+        else:
+            cv2.putText(frame, str(countdown), (30, 50), cv2.FONT_HERSHEY_SIMPLEX, 1,
+                        (255, 255, 0), 2,
+                        cv2.LINE_AA)
+
+
+        if(cart_switched==True):
+            cv2.line(frame, (0, HEIGHT - line_threshold), (WIDTH, HEIGHT - line_threshold), (0, 255, 0), 2)
 
         # All the results have been drawn on the frame, so it's time to display it.
         cv2.imshow('Object detector', frame)
