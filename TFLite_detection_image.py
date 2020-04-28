@@ -15,7 +15,7 @@
 # Import packages
 
 import os
-from utils.utils import non_max_suppression_slow
+from utils.utils import non_max_suppression
 import argparse
 import cv2
 import numpy as np
@@ -171,7 +171,7 @@ for image_path in images:
     print("Before NMS", len(boxes_list))
     boxes_list_no_nms=boxes_list.copy()
 
-    nms_idx=non_max_suppression_slow(boxes_list, 0.3)
+    nms_idx=non_max_suppression(boxes_list, 0.3)
     print("After NMS", len(nms_idx))
 
     # Loop over all detections and draw detection box if confidence is above minimum threshold

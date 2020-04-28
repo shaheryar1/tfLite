@@ -54,7 +54,7 @@ def get_iou(bb1, bb2):
 
 
 
-def non_max_suppression_slow(boxes, overlapThresh):
+def non_max_suppression(boxes, overlapThresh):
 	# if there are no boxes, return an empty list
     if len(boxes) == 0:
         return []

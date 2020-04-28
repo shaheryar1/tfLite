@@ -81,14 +81,10 @@ if __name__ == '__main__':
     ret = True
     count=-1;
 
-    countdown=15
-    cart_switched=False
-    print("Cart switched on !")
 
     # for frame1 in camera.capture_continuous(rawCapture, format="bgr",use_video_port=True):
     while ret:
 
-        countdown=countdown-1;
 
 
         count=count+1;
@@ -105,15 +101,6 @@ if __name__ == '__main__':
         HEIGHT, WIDTH, CHANNELS = frame.shape
         # check camera blockage
 
-        blockage=detect_blockage(frame)
-        if(blockage==1):
-            cv2.putText(frame, "Camera is blocked", (30, HEIGHT-50), cv2.FONT_HERSHEY_SIMPLEX, 1,
-                        (255, 255, 0), 2,
-                        cv2.LINE_AA)
-        elif(blockage==2):
-            cv2.putText(frame, "Camera partially blocked", (30, HEIGHT-50), cv2.FONT_HERSHEY_SIMPLEX, 1,
-                        (255, 255, 0), 2,
-                        cv2.LINE_AA)
 
 
 
@@ -125,47 +112,50 @@ if __name__ == '__main__':
         # Normalize pixel values if using a floating model (i.e. if model is non-quantized)
             if floating_model:
                 input_data = (np.float32(input_data) - input_mean) / input_std
+                print("floating model")
 
+            now = time.time()
             # Perform the actual detection by running the model with the image as input
             interpreter.set_tensor(input_details[0]['index'], input_data)
             interpreter.invoke()
+            print(time.time() - now)
 
             # Retrieve detection results
             boxes = interpreter.get_tensor(output_details[0]['index'])[0]  # Bounding box coordinates of detected objects
             classes = interpreter.get_tensor(output_details[1]['index'])[0]  # Class index of detected objects
             scores = interpreter.get_tensor(output_details[2]['index'])[0]  # Confidence of detected objects
-        boxes_temp = [];
-        classes_temp=[]
-        scores_temp=[]
-        nms_idx=[]
-        for i in range(len(scores)):
-            if ((scores[i] > min_conf_threshold) and (scores[i] <= 1.0)  and classes[i] in target_objects ):
 
-                boxes[i][0] = int(max(1, (boxes[i][0] * imH)))
-                boxes[i][1] = int(max(1, (boxes[i][1] * imW)))
-                boxes[i][2] = int(min(imH, (boxes[i][2] * imH)))
-                boxes[i][3] = int(min(imW, (boxes[i][3] * imW)))
-                classes_temp.append(classes[i])
-                boxes_temp.append(boxes[i])
-                scores_temp.append(scores[i])
 
-        boxes_temp = np.array(boxes_temp)
-        boxes=boxes_temp
-        scores=scores_temp
-        classes=np.array(classes_temp)
-              # nms_idx represents indices of selected bounding boxes
 
-        nms_idx = non_max_suppression(boxes_temp, 0.3)
+
+            boxes_temp = [];
+            classes_temp=[]
+            scores_temp=[]
+            for i in range(len(scores)):
+                if ((scores[i] > min_conf_threshold) and (scores[i] <= 1.0)  and classes[i] in target_objects ):
+
+                    y1 = int(max(1, (boxes[i][0] * imH)))
+                    x1 = int(max(1, (boxes[i][1] * imW)))
+                    y2 = int(min(imH, (boxes[i][2] * imH)))
+                    x2 = int(min(imW, (boxes[i][3] * imW)))
+                    classes_temp.append(classes[i])
+                    boxes_temp.append([y1,x1,y2,x2])
+                    scores_temp.append(scores[i])
+            boxes_temp = np.array(boxes_temp)
+            classes_temp=np.array(classes_temp)
+            nms_idx = non_max_suppression(boxes_temp, 0.3)
+
 
         # Loop over all detections and draw detection box if confidence is above minimum threshold
         for idx in (nms_idx):
             # if ((scores[i] > min_conf_threshold) and (scores[i] <= 1.0)):
                 # Get bounding box coordinates and draw box
                 # Interpreter can return coordinates that are outside of image dimensions, need to force them to be within image using max() and min()
-            ymin = int(max(1, (boxes[idx][0])))
-            xmin = int(max(1, (boxes[idx][1] )))
-            ymax = int(min(imH, (boxes[idx][2] )))
-            xmax = int(min(imW, (boxes[idx][3] )))
+            ymin = int(max(1, (boxes_temp[idx][0])))
+            xmin = int(max(1, (boxes_temp[idx][1] )))
+            ymax = int(min(imH, (boxes_temp[idx][2] )))
+            xmax = int(min(imW, (boxes_temp[idx][3] )))
+
             cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), (10, 255, 0), 2)
             # Draw label
             object_name = labels[int(classes[idx])]  # Look up object name from "labels" array using class index
@@ -181,14 +171,8 @@ if __name__ == '__main__':
 
         # Tracking and assigning unique IDs part -- start
 
-        objects,c = ct.update(boxes[nms_idx],classes[nms_idx])
+        objects,c = ct.update(boxes_temp[nms_idx],classes[nms_idx])
 
-        if (countdown == 0 and cart_switched == False):
-            cart_switched = True
-            for (objectID, centroid) in objects.items():
-                print("Inserted ",labels[int(c[objectID])]," in database")
-
-            print("Now cart will detect dropping items")
 
 
         for (objectID, centroid) in objects.items():
@@ -207,7 +191,7 @@ if __name__ == '__main__':
 
 
             # Dropping and picking items from cart is started
-            if(cart_switched==True):
+            if(True):
                 if(previous_points.get(objectID) is None):
                     previous_points[objectID]=0
                 else:
@@ -230,24 +214,21 @@ if __name__ == '__main__':
 
         # Draw framerate in corner of frame
 
-        if(cart_switched):
-            cv2.putText(frame, 'FPS: {0:.2f}'.format(frame_rate_calc), (30, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2,
-                        cv2.LINE_AA)
-        else:
-            cv2.putText(frame, str(countdown), (30, 50), cv2.FONT_HERSHEY_SIMPLEX, 1,
-                        (255, 255, 0), 2,
+
+        cv2.putText(frame, 'FPS: {0:.2f}'.format(frame_rate_calc), (30, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2,
                         cv2.LINE_AA)
 
 
-        if(cart_switched==True):
-            cv2.line(frame, (0, HEIGHT - line_threshold), (WIDTH, HEIGHT - line_threshold), (0, 255, 0), 2)
+        cv2.line(frame, (0, HEIGHT - line_threshold), (WIDTH, HEIGHT - line_threshold), (0, 255, 0), 2)
+
+        t2 = cv2.getTickCount()
+        time1 = (t2 - t1) / freq
+        frame_rate_calc = 1 / time1
 
         # All the results have been drawn on the frame, so it's time to display it.
         cv2.imshow('Object detector', frame)
         # Calculate framerate
-        t2 = cv2.getTickCount()
-        time1 = (t2 - t1) / freq
-        frame_rate_calc = 1 / time1
+
 
         # Press 'q' to quit
         if cv2.waitKey(1) == ord('q'):
