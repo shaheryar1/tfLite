@@ -4,6 +4,7 @@ import os
 from utils.utils import non_max_suppression,get_iou
 import argparse
 import cv2
+import dlib
 from utils.camera_utils import detect_blockage
 import numpy as np
 import sys
@@ -61,6 +62,8 @@ width = input_details[0]['shape'][2]
 
 floating_model = (input_details[0]['dtype'] == np.float32)
 
+print(output_details)
+
 input_mean = 127.5
 input_std = 127.5
 
@@ -96,7 +99,6 @@ if __name__ == '__main__':
 
 
 
-
         frame = frame1.copy()
         HEIGHT, WIDTH, CHANNELS = frame.shape
         # check camera blockage
@@ -106,9 +108,11 @@ if __name__ == '__main__':
 
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         frame_resized = cv2.resize(frame_rgb, (width, height))
-        input_data = np.expand_dims(frame_resized, axis=0)
-        if(True):
 
+
+        input_data = np.expand_dims(frame_resized, axis=0)
+        if(count%30==0):
+            trackers = []
         # Normalize pixel values if using a floating model (i.e. if model is non-quantized)
             if floating_model:
                 input_data = (np.float32(input_data) - input_mean) / input_std
@@ -147,68 +151,82 @@ if __name__ == '__main__':
 
 
         # Loop over all detections and draw detection box if confidence is above minimum threshold
-        for idx in (nms_idx):
-            # if ((scores[i] > min_conf_threshold) and (scores[i] <= 1.0)):
-                # Get bounding box coordinates and draw box
-                # Interpreter can return coordinates that are outside of image dimensions, need to force them to be within image using max() and min()
-            ymin = int(max(1, (boxes_temp[idx][0])))
-            xmin = int(max(1, (boxes_temp[idx][1] )))
-            ymax = int(min(imH, (boxes_temp[idx][2] )))
-            xmax = int(min(imW, (boxes_temp[idx][3] )))
+            for idx in (nms_idx):
+                # if ((scores[i] > min_conf_threshold) and (scores[i] <= 1.0)):
+                    # Get bounding box coordinates and draw box
+                    # Interpreter can return coordinates that are outside of image dimensions, need to force them to be within image using max() and min()
+                ymin = int(max(1, (boxes_temp[idx][0])))
+                xmin = int(max(1, (boxes_temp[idx][1] )))
+                ymax = int(min(imH, (boxes_temp[idx][2] )))
+                xmax = int(min(imW, (boxes_temp[idx][3] )))
+                t = dlib.correlation_tracker()
+                rect = dlib.rectangle(xmin, ymin, xmax, ymax)
+                t.start_track(frame_rgb, rect)
+                trackers.append((t,classes_temp[idx],scores_temp[idx]))
+        else:
+            for t,c,score in trackers:
+                t.update(frame_rgb)
+                pos = t.get_position()
+                # unpack the position object
+                xmin = int(pos.left())
+                ymin = int(pos.top())
+                xmax = int(pos.right())
+                ymax = int(pos.bottom())
 
-            cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), (10, 255, 0), 2)
-            # Draw label
-            object_name = labels[int(classes[idx])]  # Look up object name from "labels" array using class index
-            label = '%s: %d%%' % (object_name, int(scores[idx] * 100))  # Example: 'person: 72%'
-            labelSize, baseLine = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)  # Get font size
-            label_ymin = max(ymin, labelSize[1] + 10)  # Make sure not to draw label too close to top of window
-            cv2.rectangle(frame, (xmin, label_ymin - labelSize[1] - 10),
-                          (xmin + labelSize[0], label_ymin + baseLine - 10), (255, 255, 255),
-                          cv2.FILLED)  # Draw white box to put label text in
 
-            cv2.putText(frame, label, (xmin, label_ymin - 7), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0),
-                        2)  # Draw label text
+                cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), (10, 255, 0), 2)
+                # Draw label
+                object_name = labels[int(c)]  # Look up object name from "labels" array using class index
+                label = '%s: %d%%' % (object_name, int(score * 100))  # Example: 'person: 72%'
+                labelSize, baseLine = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.7, 2)  # Get font size
+                label_ymin = max(ymin, labelSize[1] + 10)  # Make sure not to draw label too close to top of window
+                cv2.rectangle(frame, (xmin, label_ymin - labelSize[1] - 10),
+                              (xmin + labelSize[0], label_ymin + baseLine - 10), (255, 255, 255),
+                              cv2.FILLED)  # Draw white box to put label text in
+
+                cv2.putText(frame, label, (xmin, label_ymin - 7), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0),
+                            2)  # Draw label text
 
         # Tracking and assigning unique IDs part -- start
 
-        objects,c = ct.update(boxes_temp[nms_idx],classes[nms_idx])
+        # objects,c = ct.update(boxes_temp[nms_idx],classes[nms_idx])
 
 
-
-        for (objectID, centroid) in objects.items():
-
-            thresh = HEIGHT-line_threshold
-            #
-            # if(ct.disappeared[objectID]==max_disappeared-1):
-            #     dto=DetectionDTO();
-            #     dto.object_id=target_object_id
-            #     dto.confidence=70
-            #     dal.insertDetection(dto)
-            # draw both the ID of the object and the centroid of the
-            # object on the output frame
-            x=centroid[0]
-            y=centroid[1]
-
-
-            # Dropping and picking items from cart is started
-            if(True):
-                if(previous_points.get(objectID) is None):
-                    previous_points[objectID]=0
-                else:
-                    if ( y > thresh and previous_points[objectID] < y and previous_points[objectID] < thresh):
-                        print("Putting down  ",labels[int(c[objectID])])
-                    elif (y < thresh and previous_points[objectID] > y and previous_points[objectID] > thresh):
-                        print("Picking out ", labels[int(c[objectID])])
-
-                previous_points[objectID]=y
-
-
-
-
-            text = "Object {}".format(objectID)
-            cv2.putText(frame, text, (centroid[0] - 10, centroid[1] - 10),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-            cv2.circle(frame, (centroid[0], centroid[1]), 4, (0, 255, 0), -1)
+        #
+        # for (objectID, centroid) in objects.items():
+        #
+        #     thresh = HEIGHT-line_threshold
+        #     #
+        #     # if(ct.disappeared[objectID]==max_disappeared-1):
+        #     #     dto=DetectionDTO();
+        #     #     dto.object_id=target_object_id
+        #     #     dto.confidence=70
+        #     #     dal.insertDetection(dto)
+        #     # draw both the ID of the object and the centroid of the
+        #     # object on the output frame
+        #     x=centroid[0]
+        #     y=centroid[1]
+        #
+        #
+        #     # Dropping and picking items from cart is started
+        #     if(True):
+        #         if(previous_points.get(objectID) is None):
+        #             previous_points[objectID]=0
+        #         else:
+        #             if ( y > thresh and previous_points[objectID] < y and previous_points[objectID] < thresh):
+        #                 print("Putting down  ",labels[int(c[objectID])])
+        #             elif (y < thresh and previous_points[objectID] > y and previous_points[objectID] > thresh):
+        #                 print("Picking out ", labels[int(c[objectID])])
+        #
+        #         previous_points[objectID]=y
+        #
+        #
+        #
+        #
+        #     text = "Object {}".format(objectID)
+        #     cv2.putText(frame, text, (centroid[0] - 10, centroid[1] - 10),
+        #                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+        #     cv2.circle(frame, (centroid[0], centroid[1]), 4, (0, 255, 0), -1)
 
         # Tracking and assigning unique IDs part -- end
 
