@@ -95,11 +95,13 @@ if __name__ == '__main__':
         t1 = cv2.getTickCount()
 
         # Grab frame from video stream
-        ret, frame1 = vid.read()
+        ret, frame = vid.read()
+
+        if frame is None:
+            break
 
 
 
-        frame = frame1.copy()
         HEIGHT, WIDTH, CHANNELS = frame.shape
         # check camera blockage
 
@@ -164,6 +166,10 @@ if __name__ == '__main__':
                 t.start_track(frame_rgb, rect)
                 trackers.append((t,classes_temp[idx],scores_temp[idx]))
         else:
+            boxes_temp = [];
+            classes_temp = []
+            scores_temp = []
+
             for t,c,score in trackers:
                 t.update(frame_rgb)
                 pos = t.get_position()
@@ -173,6 +179,9 @@ if __name__ == '__main__':
                 xmax = int(pos.right())
                 ymax = int(pos.bottom())
 
+                boxes_temp.append((ymin,xmin,ymax,xmax))
+                classes_temp.append(c)
+                scores_temp.append(score)
 
                 cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), (10, 255, 0), 2)
                 # Draw label
@@ -189,44 +198,44 @@ if __name__ == '__main__':
 
         # Tracking and assigning unique IDs part -- start
 
-        # objects,c = ct.update(boxes_temp[nms_idx],classes[nms_idx])
+        objects,c = ct.update(boxes_temp,classes_temp)
 
 
-        #
-        # for (objectID, centroid) in objects.items():
-        #
-        #     thresh = HEIGHT-line_threshold
-        #     #
-        #     # if(ct.disappeared[objectID]==max_disappeared-1):
-        #     #     dto=DetectionDTO();
-        #     #     dto.object_id=target_object_id
-        #     #     dto.confidence=70
-        #     #     dal.insertDetection(dto)
-        #     # draw both the ID of the object and the centroid of the
-        #     # object on the output frame
-        #     x=centroid[0]
-        #     y=centroid[1]
-        #
-        #
-        #     # Dropping and picking items from cart is started
-        #     if(True):
-        #         if(previous_points.get(objectID) is None):
-        #             previous_points[objectID]=0
-        #         else:
-        #             if ( y > thresh and previous_points[objectID] < y and previous_points[objectID] < thresh):
-        #                 print("Putting down  ",labels[int(c[objectID])])
-        #             elif (y < thresh and previous_points[objectID] > y and previous_points[objectID] > thresh):
-        #                 print("Picking out ", labels[int(c[objectID])])
-        #
-        #         previous_points[objectID]=y
-        #
-        #
-        #
-        #
-        #     text = "Object {}".format(objectID)
-        #     cv2.putText(frame, text, (centroid[0] - 10, centroid[1] - 10),
-        #                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-        #     cv2.circle(frame, (centroid[0], centroid[1]), 4, (0, 255, 0), -1)
+
+        for (objectID, centroid) in objects.items():
+
+            thresh = HEIGHT-line_threshold
+            #
+            # if(ct.disappeared[objectID]==max_disappeared-1):
+            #     dto=DetectionDTO();
+            #     dto.object_id=target_object_id
+            #     dto.confidence=70
+            #     dal.insertDetection(dto)
+            # draw both the ID of the object and the centroid of the
+            # object on the output frame
+            x=centroid[0]
+            y=centroid[1]
+
+
+            # Dropping and picking items from cart is started
+            if(True):
+                if(previous_points.get(objectID) is None):
+                    previous_points[objectID]=0
+                else:
+                    if ( y > thresh and previous_points[objectID] < y and previous_points[objectID] < thresh):
+                        print("Putting down  ",labels[int(c[objectID])])
+                    elif (y < thresh and previous_points[objectID] > y and previous_points[objectID] > thresh):
+                        print("Picking out ", labels[int(c[objectID])])
+
+                previous_points[objectID]=y
+
+
+
+
+            text = "Object {}".format(objectID)
+            cv2.putText(frame, text, (centroid[0] - 10, centroid[1] - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+            cv2.circle(frame, (centroid[0], centroid[1]), 4, (0, 255, 0), -1)
 
         # Tracking and assigning unique IDs part -- end
 
@@ -249,7 +258,7 @@ if __name__ == '__main__':
 
 
         # Press 'q' to quit
-        if cv2.waitKey(1) == ord('q'):
+        if cv2.waitKey(30) == ord('q'):
             break
 
     # Clean up
