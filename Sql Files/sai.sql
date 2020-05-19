@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Mar 10, 2020 at 09:55 AM
+-- Generation Time: May 18, 2020 at 11:08 AM
 -- Server version: 10.3.16-MariaDB
 -- PHP Version: 7.1.30
 
@@ -25,6 +25,23 @@ SET time_zone = "+00:00";
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `camera_block`
+--
+
+CREATE TABLE `camera_block` (
+  `block` int(11) NOT NULL DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+
+--
+-- Dumping data for table `camera_block`
+--
+
+INSERT INTO `camera_block` (`block`) VALUES
+(0);
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `detections`
 --
 
@@ -40,7 +57,9 @@ CREATE TABLE `detections` (
 --
 
 INSERT INTO `detections` (`id`, `entry_time`, `confidence`, `object_id`) VALUES
-(16, '2020-03-10 08:40:30', 69, 43);
+(38, '2020-03-12 10:07:08', 70, 43),
+(40, '2020-03-12 10:11:40', 70, 43),
+(41, '2020-03-12 10:11:56', 70, 43);
 
 -- --------------------------------------------------------
 
@@ -60,86 +79,96 @@ CREATE TABLE `objects` (
 --
 
 INSERT INTO `objects` (`object_id`, `name`, `price`, `status`) VALUES
-(0, 'person\n', 0, 1),
-(1, 'bicycle\n', 1.99, 1),
-(2, 'car\n', 3.98, 1),
-(3, 'motorcycle\n', 5.97, 1),
-(4, 'airplane\n', 7.96, 1),
-(5, 'bus\n', 9.95, 1),
-(6, 'train\n', 11.94, 1),
-(7, 'truck\n', 13.93, 1),
-(8, 'boat\n', 15.92, 1),
-(9, 'traffic light\n', 17.91, 1),
-(10, 'fire hydrant\n', 19.9, 1),
-(11, 'stop sign\n', 21.89, 1),
-(12, 'parking meter\n', 23.88, 1),
-(13, 'bench\n', 25.87, 1),
-(14, 'bird\n', 27.86, 1),
-(15, 'cat\n', 29.85, 1),
-(16, 'dog\n', 31.84, 1),
-(17, 'horse\n', 33.83, 1),
-(18, 'sheep\n', 35.82, 1),
-(19, 'cow\n', 37.81, 1),
-(20, 'elephant\n', 39.8, 1),
-(21, 'bear\n', 41.79, 1),
-(22, 'zebra\n', 43.78, 1),
-(23, 'giraffe\n', 45.77, 1),
-(24, 'backpack\n', 47.76, 1),
-(25, 'umbrella\n', 49.75, 1),
-(26, 'handbag\n', 51.74, 1),
-(27, 'tie\n', 53.73, 1),
-(28, 'suitcase\n', 55.72, 1),
-(29, 'frisbee\n', 57.71, 1),
-(30, 'skis\n', 59.7, 1),
-(31, 'snowboard\n', 61.69, 1),
-(32, 'sports ball\n', 63.68, 1),
-(33, 'kite\n', 65.67, 1),
-(34, 'baseball bat\n', 67.66, 1),
-(35, 'baseball glove\n', 69.65, 1),
-(36, 'skateboard\n', 71.64, 1),
-(37, 'surfboard\n', 73.63, 1),
-(38, 'tennis racket\n', 75.62, 1),
-(39, 'bottle\n', 77.61, 1),
-(40, 'wine glass\n', 79.6, 1),
-(41, 'cup\n', 81.59, 1),
-(42, 'fork\n', 83.58, 1),
-(43, 'knife\n', 85.57, 1),
-(44, 'spoon\n', 87.56, 1),
-(45, 'bowl\n', 89.55, 1),
-(46, 'banana\n', 91.54, 1),
-(47, 'apple\n', 93.53, 1),
-(48, 'sandwich\n', 95.52, 1),
-(49, 'orange\n', 97.51, 1),
-(50, 'broccoli\n', 99.5, 1),
-(51, 'carrot\n', 101.49, 1),
-(52, 'hot dog\n', 103.48, 1),
-(53, 'pizza\n', 105.47, 1),
-(54, 'donut\n', 107.46, 1),
-(55, 'cake\n', 109.45, 1),
-(56, 'chair\n', 111.44, 1),
-(57, 'couch\n', 113.43, 1),
-(58, 'potted plant\n', 115.42, 1),
-(59, 'bed\n', 117.41, 1),
-(60, 'dining table\n', 119.4, 1),
-(61, 'toilet\n', 121.39, 1),
-(62, 'tv\n', 123.38, 1),
-(63, 'laptop\n', 125.37, 1),
-(64, 'mouse\n', 127.36, 1),
-(65, 'remote\n', 129.35, 1),
-(66, 'keyboard\n', 131.34, 1),
-(67, 'cell phone\n', 133.33, 1),
-(68, 'microwave\n', 135.32, 1),
-(69, 'oven\n', 137.31, 1),
-(70, 'toaster\n', 139.3, 1),
-(71, 'sink\n', 141.29, 1),
-(72, 'refrigerator\n', 143.28, 1),
-(73, 'book\n', 145.27, 1),
-(74, 'clock\n', 147.26, 1),
-(75, 'vase\n', 149.25, 1),
-(76, 'scissors\n', 151.24, 1),
-(77, 'teddy bear\n', 153.23, 1),
-(78, 'hair drier\n', 155.22, 1),
-(79, 'toothbrush\n', 157.21, 1);
+(0, 'person', 0, 1),
+(1, 'bicycle', 1.99, 1),
+(2, 'car', 3.98, 1),
+(3, 'motorcycle', 5.97, 1),
+(4, 'airplane', 7.96, 1),
+(5, 'bus', 9.95, 1),
+(6, 'train', 11.94, 1),
+(7, 'truck', 13.93, 1),
+(8, 'boat', 15.92, 1),
+(9, 'traffic light', 17.91, 1),
+(10, 'fire hydrant', 19.9, 1),
+(11, '???', 21.89, 1),
+(12, 'stop sign', 23.88, 1),
+(13, 'parking meter', 25.87, 1),
+(14, 'bench', 27.86, 1),
+(15, 'bird', 29.85, 1),
+(16, 'cat', 31.84, 1),
+(17, 'dog', 33.83, 1),
+(18, 'horse', 35.82, 1),
+(19, 'sheep', 37.81, 1),
+(20, 'cow', 39.8, 1),
+(21, 'elephant', 41.79, 1),
+(22, 'bear', 43.78, 1),
+(23, 'zebra', 45.77, 1),
+(24, 'giraffe', 47.76, 1),
+(25, '???', 49.75, 1),
+(26, 'backpack', 51.74, 1),
+(27, 'umbrella', 53.73, 1),
+(28, '???', 55.72, 1),
+(29, '???', 57.71, 1),
+(30, 'handbag', 59.7, 1),
+(31, 'tie', 61.69, 1),
+(32, 'suitcase', 63.68, 1),
+(33, 'frisbee', 65.67, 1),
+(34, 'skis', 67.66, 1),
+(35, 'snowboard', 69.65, 1),
+(36, 'sports ball', 71.64, 1),
+(37, 'kite', 73.63, 1),
+(38, 'baseball bat', 75.62, 1),
+(39, 'baseball glove', 77.61, 1),
+(40, 'skateboard', 79.6, 1),
+(41, 'surfboard', 81.59, 1),
+(42, 'tennis racket', 83.58, 1),
+(43, 'bottle', 85.57, 1),
+(44, '???', 87.56, 1),
+(45, 'wine glass', 89.55, 1),
+(46, 'cup', 91.54, 1),
+(47, 'fork', 93.53, 1),
+(48, 'knife', 95.52, 1),
+(49, 'spoon', 97.51, 1),
+(50, 'bowl', 99.5, 1),
+(51, 'banana', 101.49, 1),
+(52, 'apple', 103.48, 1),
+(53, 'sandwich', 105.47, 1),
+(54, 'orange', 107.46, 1),
+(55, 'broccoli', 109.45, 1),
+(56, 'carrot', 111.44, 1),
+(57, 'hot dog', 113.43, 1),
+(58, 'pizza', 115.42, 1),
+(59, 'donut', 117.41, 1),
+(60, 'cake', 119.4, 1),
+(61, 'chair', 121.39, 1),
+(62, 'couch', 123.38, 1),
+(63, 'potted plant', 125.37, 1),
+(64, 'bed', 127.36, 1),
+(65, '???', 129.35, 1),
+(66, 'dining table', 131.34, 1),
+(67, '???', 133.33, 1),
+(68, '???', 135.32, 1),
+(69, 'toilet', 137.31, 1),
+(70, '???', 139.3, 1),
+(71, 'tv', 141.29, 1),
+(72, 'laptop', 143.28, 1),
+(73, 'mouse', 145.27, 1),
+(74, 'remote', 147.26, 1),
+(75, 'keyboard', 149.25, 1),
+(76, 'cell phone', 151.24, 1),
+(77, 'microwave', 153.23, 1),
+(78, 'oven', 155.22, 1),
+(79, 'toaster', 157.21, 1),
+(80, 'sink', 159.2, 1),
+(81, 'refrigerator', 161.19, 1),
+(82, '???', 163.18, 1),
+(83, 'book', 165.17, 1),
+(84, 'clock', 167.16, 1),
+(85, 'vase', 169.15, 1),
+(86, 'scissors', 171.14, 1),
+(87, 'teddy bear', 173.13, 1),
+(88, 'hair drier', 175.12, 1),
+(89, 'toothbrush', 177.11, 1);
 
 --
 -- Indexes for dumped tables
@@ -166,7 +195,7 @@ ALTER TABLE `objects`
 -- AUTO_INCREMENT for table `detections`
 --
 ALTER TABLE `detections`
-  MODIFY `id` int(3) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
+  MODIFY `id` int(3) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=42;
 
 --
 -- Constraints for dumped tables
