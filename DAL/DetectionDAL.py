@@ -1,20 +1,15 @@
 import mysql.connector
 from mysql.connector import MySQLConnection, Error
 import config
+from DAL.DAL import DAL
 from DTO.Detection_DTO import DetectionDTO
-class DetectionDAL:
-    def getConnection(self):
-        sql_conn = config.mysql
-        try:
-            mydb = mysql.connector.connect(
-                host=sql_conn['host'],
-                user=sql_conn['user'],
-                passwd=sql_conn['passwd'],
-                database=sql_conn['database']
-            )
-        except:
-            print("connection error")
-        return mydb
+class DetectionDAL(DAL):
+
+
+    def __init__(self):
+        pass
+
+
 
     def insertDetection(self, dto):
 
@@ -35,3 +30,4 @@ class DetectionDAL:
         finally:
             mycursor.close()
             mydb.close()
+            return True

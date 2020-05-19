@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 from DTO.Object_DTO import ObjectDTO
-from DAL.Object_DAL import ObjectDAL
+from DAL.ObjectDAL import ObjectDAL
 def get_iou(bb1, bb2):
     """
     Calculate the Intersection over Union (IoU) of two bounding boxes.

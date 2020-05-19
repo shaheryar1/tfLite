@@ -1,20 +1,10 @@
 import mysql.connector
 from mysql.connector import MySQLConnection, Error
 import config
+from DAL.DAL import DAL
 from DTO.Object_DTO import ObjectDTO
-class ObjectDAL:
-    def getConnection(self):
-        sql_conn = config.mysql
-        try:
-            mydb = mysql.connector.connect(
-                host=sql_conn['host'],
-                user=sql_conn['user'],
-                passwd=sql_conn['passwd'],
-                database=sql_conn['database']
-            )
-        except:
-            print("connection error")
-        return mydb
+class ObjectDAL(DAL):
+
 
     def insertObject(self, dto):
 
@@ -35,5 +25,7 @@ class ObjectDAL:
         finally:
             mycursor.close()
             mydb.close()
+            return True
+
 
 

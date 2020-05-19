@@ -13,6 +13,7 @@ from threading import Thread
 import importlib.util
 from DTO.Detection_DTO import DetectionDTO
 import glob
+
 from utils.centroidtracker import CentroidTracker
 from DAL.DetectionDAL import DetectionDAL
 
@@ -105,7 +106,22 @@ if __name__ == '__main__':
         HEIGHT, WIDTH, CHANNELS = frame.shape
         # check camera blockage
 
+        # check camera blockage
 
+        blockage = detect_blockage(frame)
+        if (blockage == 1):
+            cv2.putText(frame, "Camera is blocked", (30, HEIGHT - 50), cv2.FONT_HERSHEY_SIMPLEX, 1,
+                        (255, 255, 0), 2,
+                        cv2.LINE_AA)
+            dal.changeBlockStatus(1)
+
+        elif (blockage == 2):
+            cv2.putText(frame, "Camera partially blocked", (30, HEIGHT - 50), cv2.FONT_HERSHEY_SIMPLEX, 1,
+                        (255, 255, 0), 2,
+                        cv2.LINE_AA)
+            dal.changeBlockStatus(2)
+        else:
+            dal.changeBlockStatus(0)
 
 
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -258,7 +274,7 @@ if __name__ == '__main__':
 
 
         # Press 'q' to quit
-        if cv2.waitKey(30) == ord('q'):
+        if cv2.waitKey(1) == ord('q'):
             break
 
     # Clean up
